@@ -28,7 +28,7 @@
     <button onclick="go('compare')"><span class="ico">⚖️</span><strong>Comparar precios</strong><small>Encuentra el mejor precio</small></button>
     <button onclick="go('wishlist')"><span class="ico">♡</span><strong>Lista de compras</strong><small>Lo que te hace falta</small></button>
   </div>
-  <div class="card"><h3>Planificación del local</h3><p>Presupuesto, locales, gastos y equipamiento.</p><button class="btn" onclick="go(&quot;plan&quot;)">Abrir planificación</button></div><div class="section-head"><h2>Agregados recientemente</h2><button class="btn ghost small" onclick="go('products')">Ver todos</button></div>
+  <div class="card"><h3>Planificación del local</h3><p>Presupuesto, locales, gastos y equipamiento.</p><button class="btn" onclick="go(&quot;planning&quot;)">Abrir planificación</button></div><div class="section-head"><h2>Agregados recientemente</h2><button class="btn ghost small" onclick="go('products')">Ver todos</button></div>
   <div id="recent"></div>
   <p class="notice">Tus registros se guardan en este navegador. Usa la opción “Respaldo” para exportar una copia y recuperarlos si cambias de dispositivo.</p>
 </section>
@@ -173,7 +173,7 @@ function planTotal(k){return db.planning.reduce((s,x)=>s+Number(x[k]||0),0)}
 function saveRate(v){db.settings.exchangeRate=Number(v)||'';save()}
 function addPlan(e){e.preventDefault();let x=Object.fromEntries(new FormData(e.target).entries());x.estimated=Number(x.estimated||0);x.actual=Number(x.actual||0);x.id=id();db.planning.unshift(x);save();e.target.reset()}
 function renderPlan(){let a=planTotal('estimated'),b=planTotal('actual');document.getElementById('planEstimated').textContent=money(a);document.getElementById('planActual').textContent=money(b);document.getElementById('planRemaining').textContent=money(Math.max(0,a-b));document.getElementById('exchangeRate').value=db.settings.exchangeRate||'';document.getElementById('planList').innerHTML=db.planning.map(x=>'<div class="card"><span class="tag">'+esc(x.category)+'</span><h3>'+esc(x.name)+'</h3><p>'+esc(x.status)+'</p><div class="compareline">Estimado <b>'+money(x.estimated)+'</b></div><div class="compareline">Pagado <b>'+money(x.actual)+'</b></div><p>'+esc(x.notes||'')+'</p></div>').join('')||'<div class="empty">Aún no hay registros.</div>'}
-function renderAll(){if(document.getElementById('planning')?.classList.contains('active'))renderPlanning();document.getElementById('countV').textContent=db.vendors.length;document.getElementById('countP').textContent=db.products.length;document.getElementById('countF').textContent=db.products.filter(p=>p.favorite).length;renderVendors();renderProducts();renderRecent();renderWishlist();renderPlan();if(document.getElementById('compare').classList.contains('active')){fillCompare()}}
+function renderAll(){if(document.getElementById('planning')?.classList.contains('active'))renderPlanning();document.getElementById('countV').textContent=db.vendors.length;document.getElementById('countP').textContent=db.products.length;document.getElementById('countF').textContent=db.products.filter(p=>p.favorite).length;renderVendors();renderProducts();renderRecent();renderWishlist();if(document.getElementById('compare').classList.contains('active')){fillCompare()}}
 function renderVendors(){let q=(document.getElementById('vendorSearch')?.value||'').toLowerCase();let a=db.vendors.filter(v=>(v.name+' '+v.city+' '+v.category).toLowerCase().includes(q));document.getElementById('vendorList').innerHTML=a.length?a.map(v=>`<div class="card"><div class="row"><div class="thumb placeholder">🏬</div><div class="grow"><h3>${esc(v.name)}</h3><p>${esc(v.city||'Ciudad no indicada')} · ${esc(v.category||'Sin categoría')}</p>${v.phone?`<span class="tag">${esc(v.phone)}</span>`:''}</div></div>${v.address?`<p style="margin-top:9px">⌖ ${esc(v.address)}</p>`:''}${v.notes?`<p style="margin-top:6px">${esc(v.notes)}</p>`:''}<div class="actions"><button class="btn ghost small" onclick="openVendor('${v.id}')">Editar</button><button class="btn ghost small" onclick="vendorProducts('${v.id}')">Ver productos</button><button class="btn ghost small" onclick="delVendor('${v.id}')">Eliminar</button></div></div>`).join(''):'<div class="empty">🏬<b>Aún no tienes proveedores</b>Agrega la primera tienda que encontraste.</div>'}
 function vendorProducts(vid){go('products');document.getElementById('productSearch').value=vendorName(vid);renderProducts()}
 function delVendor(vid){if(confirm('¿Eliminar este proveedor? Los productos asociados se conservarán.')){db.vendors=db.vendors.filter(v=>v.id!==vid);save()}}
@@ -193,6 +193,43 @@ function importData(){let file=document.getElementById('importFile').files[0];if
 function saveRate(v){db.settings.exchangeRate=Number(v||0);save();renderPlanning()}
 function showPlan(id,btn){document.querySelectorAll('.plan-panel').forEach(x=>x.classList.toggle('hidden',x.id!=='plan-'+id));document.querySelectorAll('#planTabs button').forEach(x=>x.classList.remove('active'));if(btn)btn.classList.add('active')}
 function usd(n){return '
+function bs(n){let r=Number(db.settings.exchangeRate||0);return r?' · Bs. '+(Number(n||0)*r).toLocaleString('es-VE',{maximumFractionDigits:2}):''}
+function planForm(type){
+ const cfg={
+ local:{title:'Agregar local',fields:[['name','Nombre o referencia','text','Ej. Local cerca de…'],['city','Ciudad / zona','text','Cabimas'],['rent','Alquiler mensual (USD)','number','0'],['deposit','Depósito (USD)','number','0'],['area','Metros cuadrados','number','0'],['address','Dirección / ubicación','text',''],['conditions','Condiciones y observaciones','textarea','Baños, electricidad, agua, contrato…']]},
+ budget:{title:'Agregar al presupuesto',fields:[['name','Concepto','text','Ej. Pintura y acondicionamiento'],['category','Categoría','select','Local|Reparaciones|Mobiliario|Cocina|Permisos|Inventario|Marketing|Otros'],['amount','Costo estimado (USD)','number','0'],['status','Estado','select','Por investigar|Cotizado|Comprado'],['notes','Notas','textarea','']]},
+ expense:{title:'Agregar gasto mensual',fields:[['name','Concepto','text','Ej. Electricidad'],['amount','Monto mensual (USD)','number','0'],['notes','Notas','textarea','']]},
+ equipment:{title:'Agregar equipamiento',fields:[['name','Artículo','text','Ej. Vitrina refrigerada'],['category','Categoría','select','Mobiliario|Cafetería|Cocina|Arte y talleres|Decoración|Tecnología|Otros'],['amount','Precio estimado (USD)','number','0'],['status','Estado','select','Por buscar|Cotizado|Comprado'],['notes','Detalles','textarea','Tamaño, modelo, tienda…']]},
+ menu:{title:'Agregar producto o experiencia',fields:[['name','Nombre','text','Ej. Café frío / Pintura libre'],['type','Tipo','select','Bebida|Dulce o merienda|Pintura|Cerámica|Taller|Otro'],['cost','Costo estimado por persona / unidad (USD)','number','0'],['price','Precio de venta estimado (USD)','number','0'],['notes','Detalles','textarea','Materiales, ingredientes, duración…']]},
+ permit:{title:'Agregar trámite',fields:[['name','Trámite o requisito','text','Ej. Permiso de funcionamiento'],['amount','Costo estimado (USD)','number','0'],['status','Estado','select','Por investigar|Pendiente|En proceso|Completado'],['date','Fecha o vencimiento','date',''],['notes','Notas / documentos','textarea','']]},
+ task:{title:'Agregar tarea o idea',fields:[['name','Tarea / idea','text','Ej. Visitar locales'],['category','Área','select','Local|Proveedores|Finanzas|Menú|Diseño|Permisos|Otros'],['status','Estado','select','Pendiente|En proceso|Completado'],['date','Fecha objetivo','date',''],['notes','Notas','textarea','']]}
+ };
+ const x=cfg[type];let html='<form onsubmit="savePlan(event,\''+type+'\')">';
+ for(const [key,label,kind,placeholder] of x.fields){html+='<div class="field"><label>'+label+'</label>';if(kind==='select'){html+='<select name="'+key+'">'+placeholder.split('|').map(o=>'<option>'+o+'</option>').join('')+'</select>'}else if(kind==='textarea'){html+='<textarea name="'+key+'" placeholder="'+placeholder+'"></textarea>'}else{html+='<input name="'+key+'" type="'+kind+'" '+(kind==='number'?'min="0" step="0.01"':'')+' placeholder="'+placeholder+'">'}html+='</div>'}
+ html+='<button class="btn" style="width:100%">Guardar</button></form>';openModal(x.title,html);
+}
+function savePlan(e,type){e.preventDefault();let v=Object.fromEntries(new FormData(e.target).entries());v.id=id();v.createdAt=new Date().toISOString();if(['rent','deposit','area','amount','cost','price'].some(k=>v[k]!==undefined))for(const k of ['rent','deposit','area','amount','cost','price'])if(v[k]!==undefined)v[k]=Number(v[k]||0);db[{local:'locals',budget:'budget',expense:'expenses',equipment:'equipment',menu:'menu',permit:'permits',task:'tasks'}[type]].unshift(v);save();closeModal();renderPlanning()}
+function deletePlan(type,pid){if(confirm('¿Eliminar este registro?')){db[type]=db[type].filter(x=>x.id!==pid);save();renderPlanning()}}
+function renderPlanList(idName,arr,type,summaryFn){let el=document.getElementById(idName);if(!el)return;if(!arr.length){el.innerHTML='<div class="empty">Aún no hay registros. Pulsa “＋ Agregar” para comenzar.</div>';return}el.innerHTML='<div class="card">'+arr.map(x=>'<div class="record-row"><div class="grow"><b>'+esc(x.name||'Sin nombre')+'</b><small>'+esc(summaryFn(x))+'</small>'+(x.notes||x.conditions?'<small>'+esc(x.notes||x.conditions)+'</small>':'')+'</div><div style="text-align:right"><b>'+esc(x.amount!==undefined?usd(x.amount):x.rent!==undefined?usd(x.rent)+' / mes':x.price!==undefined?usd(x.price):'')+'</b><div><button class="btn ghost small" onclick="deletePlan(\''+type+'\',\''+x.id+'\')">Eliminar</button></div></div></div>').join('')+'</div>'}
+function renderPlanning(){
+ const rate=document.getElementById('exchangeRate');if(!rate)return;rate.value=db.settings.exchangeRate||'';document.getElementById('ratePreview').textContent=db.settings.exchangeRate?bs(100).replace(' · ',''):'Configura la tasa';
+ const sum=(a,k)=>a.reduce((n,x)=>n+Number(x[k]||0),0);
+ const total=sum(db.budget,'amount')+sum(db.equipment.filter(x=>x.status!=='Comprado'),'amount');
+ document.getElementById('budgetTotal').textContent=usd(total);
+ document.getElementById('expenseTotal').textContent=usd(sum(db.expenses,'amount'));
+ document.getElementById('equipmentTotal').textContent=usd(sum(db.equipment,'amount'));
+ document.getElementById('taskPending').textContent=db.tasks.filter(x=>x.status!=='Completado').length;
+ renderPlanList('localsList',db.locals,'locals',x=>(x.city||'')+' · '+(x.area?x.area+' m² · ':'')+'Depósito '+usd(x.deposit||0)+' · '+(x.address||''));
+ renderPlanList('budgetList',db.budget,'budget',x=>(x.category||'')+' · '+(x.status||'Por investigar'));
+ renderPlanList('expensesList',db.expenses,'expenses',x=>'Gasto mensual'+(x.notes?' · '+x.notes:''));
+ renderPlanList('equipmentList',db.equipment,'equipment',x=>(x.category||'')+' · '+(x.status||'Por buscar'));
+ renderPlanList('menuList',db.menu,'menu',x=>(x.type||'')+' · Costo '+usd(x.cost||0)+' · Venta '+usd(x.price||0));
+ renderPlanList('permitsList',db.permits,'permits',x=>(x.status||'Por investigar')+(x.date?' · '+x.date:'')+(x.amount?' · '+usd(x.amount):''));
+ renderPlanList('tasksList',db.tasks,'tasks',x=>(x.category||'')+' · '+(x.status||'Pendiente')+(x.date?' · '+x.date:''));
+}
+
+renderAll();
+</script>
 </body></html>+Number(n||0).toFixed(2)}
 function bs(n){let r=Number(db.settings.exchangeRate||0);return r?' · Bs. '+(Number(n||0)*r).toLocaleString('es-VE',{maximumFractionDigits:2}):''}
 function planForm(type){
