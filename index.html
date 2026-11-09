@@ -314,6 +314,99 @@ function renderPlanning(){
  renderPlanList('tasksList',db.tasks,'tasks',x=>(x.category||'')+' · '+(x.status||'Pendiente')+(x.date?' · '+x.date:''));
 }
 
+
+/* Fichas de productos: recetas permanentes conectadas al registro de compras */
+if(!Array.isArray(db.recipes))db.recipes=[];
+(function setupRecipeTab(){
+ const tabs=document.getElementById('costTabs');
+ if(tabs && !document.getElementById('recipeTab')){
+  const b=document.createElement('button');b.id='recipeTab';b.textContent='Fichas de productos';b.onclick="";b.addEventListener('click',function(){showCostTab('recipes',b)});tabs.insertBefore(b,tabs.children[1]||null);
+  const panel=document.createElement('div');panel.id='cost-recipes';panel.className='cost-panel hidden';
+  panel.innerHTML='<div class="section-head"><h2>Mis productos y sus materiales</h2><button class="btn small" onclick="openRecipe()">＋ Nueva ficha</button></div><p class="muted">Define una vez qué necesita cada pieza. El costo se actualiza usando el precio actual de tus compras registradas.</p><div id="recipeList"></div>';
+  document.getElementById('cost-purchases').after(panel);
+ }
+})();
+function showCostTab(tab,btn){
+ document.querySelectorAll('.cost-panel').forEach(x=>x.classList.toggle('hidden',x.id!=='cost-'+tab));
+ document.querySelectorAll('#costTabs button').forEach(x=>x.classList.remove('active'));
+ if(btn)btn.classList.add('active');
+ if(tab==='recipes')renderRecipes();
+}
+function recipeUnitCost(r){
+ return (r.materials||[]).reduce((sum,m)=>{
+  const p=db.purchases.find(x=>x.id===m.purchaseId);
+  if(!p)return sum;
+  const unitCost=Number(p.price||0)/Math.max(Number(p.quantity||1),0.000001);
+  return sum+unitCost*Number(m.used||0);
+ },0);
+}
+function recipeMaterialRows(materials){
+ const rows=document.getElementById('recipeMaterialRows');if(!rows)return;
+ let row=document.createElement('div');row.className='cost-material-row';
+ let options='<option value="">Elegir compra/material…</option>';
+ db.purchases.forEach(p=>{options+='<option value="'+esc(p.id)+'">'+esc(p.name)+' · '+money(Number(p.price||0)/Math.max(Number(p.quantity||1),0.000001))+'/'+esc(p.unit||'unidad')+'</option>'});
+ row.innerHTML='<select required aria-label="Material">'+options+'</select><input type="number" min="0.000001" step="0.0001" placeholder="Uso por pieza" required aria-label="Cantidad por pieza"><button type="button" aria-label="Quitar material">×</button>';
+ row.querySelector('button').onclick=()=>row.remove();
+ if(materials){
+  const sel=row.querySelector('select'),inp=row.querySelector('input');
+  sel.value=materials.purchaseId||'';inp.value=materials.used||'';
+ }
+ rows.appendChild(row);
+}
+function openRecipe(recipeId){
+ if(!db.purchases.length){alert('Primero registra tus compras para poder vincular los materiales.');showCostTab('purchases',document.querySelector('#costTabs button'));return}
+ const r=db.recipes.find(x=>x.id===recipeId)||{};
+ const cats=['Tote bag','Pieza de yeso','Lienzo pequeño','Lienzo mediano','Lienzo grande','Cerámica','Otra pieza'];
+ let body='<form onsubmit="saveRecipe(event,\''+(recipeId||'')+'\')">'+
+ '<div class="field"><label>Nombre de la pieza o producto *</label><input name="name" required value="'+esc(r.name||'')+'" placeholder="Ej. Tote bag pintado"></div>'+
+ '<div class="grid2"><div class="field"><label>Tipo</label><select name="category">'+cats.map(c=>'<option '+(r.category===c?'selected':'')+'>'+c+'</option>').join('')+'</select></div><div class="field"><label>Margen de ganancia (%)</label><input name="margin" type="number" min="1" max="90" value="'+esc(r.margin??50)+'" required></div></div>'+
+ '<div class="field"><label>Materiales y herramientas que usa cada unidad</label><div id="recipeMaterialRows"></div><button type="button" class="btn secondary small" onclick="recipeMaterialRows()">＋ Agregar material</button></div>'+
+ '<p class="cost-note">Indica cuánto consumes por una pieza. Para herramientas reutilizables, reparte su costo: por ejemplo, 0.02 unidades si calculas que se amortiza en 50 piezas. Si la compra cambia de precio, esta ficha se recalcula.</p>'+
+ '<button class="btn" style="width:100%">Guardar ficha</button></form>';
+ openModal(recipeId?'Editar ficha de producto':'Crear ficha de producto',body);
+ (r.materials&&r.materials.length?r.materials:[null]).forEach(m=>recipeMaterialRows(m));
+}
+function saveRecipe(e,recipeId){
+ e.preventDefault();const f=new FormData(e.target);let materials=[];
+ document.querySelectorAll('#recipeMaterialRows .cost-material-row').forEach(row=>{
+  const purchaseId=row.querySelector('select').value,used=Number(row.querySelector('input').value||0);
+  const p=db.purchases.find(x=>x.id===purchaseId);
+  if(p&&used>0)materials.push({purchaseId,used});
+ });
+ if(!materials.length){alert('Agrega al menos un material y su cantidad por pieza.');return}
+ const old=db.recipes.find(x=>x.id===recipeId);
+ const recipe={id:recipeId||id(),name:f.get('name'),category:f.get('category'),margin:Number(f.get('margin')||50),materials,updatedAt:new Date().toISOString(),createdAt:old?.createdAt||new Date().toISOString()};
+ if(old)Object.assign(old,recipe);else db.recipes.unshift(recipe);
+ save();closeModal();showCostTab('recipes',document.getElementById('recipeTab'));renderRecipes();
+}
+function renderRecipes(){
+ const host=document.getElementById('recipeList');if(!host)return;
+ if(!db.recipes.length){host.innerHTML='<div class="empty">🎨<b>Aún no tienes fichas de productos</b>Crea una ficha para cada pieza que quieras vender y añade todos los materiales que utiliza.</div>';return}
+ host.innerHTML=db.recipes.map(r=>{
+  const cost=recipeUnitCost(r),margin=Math.min(90,Math.max(1,Number(r.margin||50)))/100,suggested=cost/(1-margin);
+  const details=(r.materials||[]).map(m=>{
+   const p=db.purchases.find(x=>x.id===m.purchaseId);
+   if(!p)return '<div class="compareline"><span>Material eliminado del registro</span><b>—</b></div>';
+   const lineCost=(Number(p.price||0)/Math.max(Number(p.quantity||1),0.000001))*Number(m.used||0);
+   return '<div class="compareline"><span>'+esc(p.name)+' · '+esc(m.used)+' '+esc(p.unit||'unidad')+'</span><b>'+money(lineCost)+'</b></div>';
+  }).join('');
+  return '<div class="card"><span class="tag">'+esc(r.category||'Producto')+'</span><h3>'+esc(r.name)+'</h3>'+details+
+  '<div class="compareline"><span>Costo por pieza</span><b>'+money(cost)+'</b></div>'+
+  '<div class="compareline"><span>Precio sugerido (margen '+esc(r.margin)+'%)</span><b class="price">'+money(suggested)+'</b></div>'+
+  '<div class="field"><label>¿Cuántas piezas quieres preparar?</label><input type="number" min="1" step="1" value="1" id="batch-'+r.id+'" oninput="updateRecipeBatch(\''+r.id+'\')"></div>'+
+  '<div id="batch-result-'+r.id+'" class="best">Inversión en materiales: '+money(cost)+' · Venta total sugerida: '+money(suggested)+'</div>'+
+  '<div class="actions"><button class="btn ghost small" onclick="openRecipe(\''+r.id+'\')">Editar ficha</button><button class="btn ghost small" onclick="deleteRecipe(\''+r.id+'\')">Eliminar</button></div></div>';
+ }).join('');
+}
+function updateRecipeBatch(recipeId){
+ const r=db.recipes.find(x=>x.id===recipeId);if(!r)return;
+ const qty=Math.max(1,Number(document.getElementById('batch-'+recipeId)?.value||1)),cost=recipeUnitCost(r),price=cost/(1-Math.min(90,Math.max(1,Number(r.margin||50)))/100);
+ const el=document.getElementById('batch-result-'+recipeId);if(el)el.textContent='Inversión en materiales: '+money(cost*qty)+' · Venta total sugerida: '+money(price*qty)+' · Ganancia bruta estimada: '+money((price-cost)*qty);
+}
+function deleteRecipe(recipeId){if(confirm('¿Eliminar esta ficha de producto?')){db.recipes=db.recipes.filter(x=>x.id!==recipeId);save();renderRecipes()}}
+const renderCostsBase=renderCosts;
+renderCosts=function(){renderCostsBase();renderRecipes()};
+
 if("serviceWorker" in navigator){window.addEventListener("load",()=>navigator.serviceWorker.register("./sw.js").catch(()=>{}));}
 renderAll();
 </script>
