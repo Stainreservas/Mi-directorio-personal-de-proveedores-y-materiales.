@@ -345,7 +345,7 @@ function recipeMaterialRows(materials){
  let row=document.createElement('div');row.className='cost-material-row';
  let options='<option value="">Elegir compra/material…</option>';
  db.purchases.forEach(p=>{options+='<option value="'+esc(p.id)+'">'+esc(p.name)+' · '+money(Number(p.price||0)/Math.max(Number(p.quantity||1),0.000001))+'/'+esc(p.unit||'unidad')+'</option>'});
- row.innerHTML='<select required aria-label="Material">'+options+'</select><input type="number" min="0" step="any" inputmode="decimal" placeholder="Uso por pieza" required aria-label="Cantidad por pieza"><button type="button" aria-label="Quitar material">×</button>';
+ row.innerHTML='<select required aria-label="Material">'+options+'</select><input type="text" inputmode="decimal" autocomplete="off" placeholder="Cantidad por pieza (ej. 1 o 0.5)" required aria-label="Cantidad por pieza"><button type="button" aria-label="Quitar material">×</button>';
  row.querySelector('button').onclick=()=>row.remove();
  if(materials){
   const sel=row.querySelector('select'),inp=row.querySelector('input');
