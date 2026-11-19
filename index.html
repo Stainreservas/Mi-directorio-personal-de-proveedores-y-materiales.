@@ -16,6 +16,7 @@
 @media(min-width:650px){.app{padding-top:28px}.quick{grid-template-columns:repeat(4,1fr)}.modalback{align-items:center}.modal{border-radius:22px;max-width:560px}}
 
 .planning-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin:14px 0}.planning-grid button{border:1px solid var(--line);background:#fff;border-radius:15px;padding:14px;text-align:left;color:var(--ink);box-shadow:var(--shadow)}.planning-grid b{display:block;font-size:13px;margin:7px 0 3px}.planning-grid small{font-size:11px;color:var(--muted)}.summary-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:9px;margin:12px 0}.summary-tile{background:#fff;border:1px solid var(--line);border-radius:14px;padding:12px}.summary-tile strong{display:block;font: bold 20px Georgia,serif;color:var(--rose);margin-top:4px}.record-row{display:flex;justify-content:space-between;gap:10px;align-items:center;padding:11px 0;border-bottom:1px solid var(--line)}.record-row:last-child{border-bottom:0}.record-row b{font-size:13px}.record-row small{display:block;color:var(--muted);font-size:11px;margin-top:3px}.section-tabs{display:flex;gap:7px;overflow:auto;margin:12px 0;padding-bottom:5px}.section-tabs button{white-space:nowrap;border:1px solid var(--line);background:#fff;border-radius:22px;padding:8px 11px;font-size:11px;color:var(--muted)}.section-tabs button.active{background:var(--rose2);color:#865b6b;border-color:#e9d4dc}
+.nav{grid-template-columns:repeat(6,1fr)}.more-wrap{position:relative}.more-menu{display:none;position:absolute;bottom:calc(100% + 10px);right:0;width:190px;background:white;border:1px solid var(--line);border-radius:15px;padding:7px;box-shadow:var(--shadow)}.more-menu.show{display:grid;gap:3px}.more-menu button{border:0;background:white;text-align:left;padding:11px;border-radius:10px;color:var(--ink);font-size:13px}.more-menu button:hover{background:var(--rose2)}.progress{height:7px;background:#f1ece8;border-radius:9px;overflow:hidden;margin:7px 0}.progress span{height:100%;display:block;background:#9caf91;border-radius:9px}.progress-input{width:62px;padding:7px;border:1px solid var(--line);border-radius:9px;background:#fffdfa;color:var(--ink)}.photo-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;margin-top:9px}.photo-grid img{width:100%;height:100px;object-fit:cover;border-radius:10px;background:var(--rose2);cursor:pointer}.cloud-compact{display:flex;justify-content:flex-end;align-items:center;gap:9px;margin:-8px 0 12px}.cloud-compact #cloudStatus{font-size:11px;margin:0;text-align:right}.cloud-compact #cloudToggle{min-width:40px;border-radius:30px;font-size:16px;padding:7px 10px}.cloud-compact #cloudSyncQuick{font-size:11px;padding:7px 10px}
 
 </style>
 </head>
@@ -23,16 +24,14 @@
 <div class="app">
 <header class="top"><div><div class="brand">Mi Proyecto</div><div class="subbrand">DIRECTORIO PERSONAL</div></div><div class="avatar">✿</div></header>
 
-<div class="card" id="cloudSyncCard" style="margin:0 0 18px">
-  <div class="row">
-    <div class="grow">
-      <h3 style="margin:0 0 4px">☁️ Sincronización OCREA</h3>
-      <p id="cloudStatus" class="muted">Conecta tu cuenta para compartir tus datos entre dispositivos.</p>
-    </div>
-    <button class="btn secondary small" id="cloudToggle" onclick="toggleCloudPanel()">Conectar</button>
-  </div>
+<div id="cloudSyncCard" class="cloud-compact">
+  <p id="cloudStatus" class="muted">Sincronización disponible</p>
+  <button class="btn secondary small hidden" id="cloudSyncQuick" onclick="cloudSyncNow()" aria-label="Sincronizar ahora">↻</button>
+  <button class="btn secondary small" id="cloudToggle" onclick="toggleCloudPanel()" aria-label="Abrir sincronización OCREA" title="Sincronización OCREA">☁</button>
+</div>
+<div class="card hidden" id="cloudAuthCard" style="margin:0 0 18px">
+  <div class="row"><div class="grow"><h3 style="margin:0 0 4px">Sincronización OCREA</h3><p class="muted">Usa la misma cuenta en todos tus dispositivos.</p></div></div>
   <div id="cloudAuthPanel" class="hidden" style="margin-top:12px">
-    <p class="muted">Usa el mismo correo y contraseña en tu laptop y en tu iPhone.</p>
     <div class="field"><label>Correo electrónico</label><input id="cloudEmail" type="email" autocomplete="email" placeholder="tu correo"></div>
     <div class="field"><label>Contraseña (mínimo 6 caracteres)</label><input id="cloudPassword" type="password" autocomplete="current-password" placeholder="Tu contraseña"></div>
     <div class="actions">
@@ -58,7 +57,7 @@
   </div>
   <div class="card"><h3>Planificación del local</h3><p>Presupuesto, locales, gastos y equipamiento.</p><button class="btn" onclick="go(&quot;planning&quot;)">Abrir planificación</button></div><div class="section-head"><h2>Agregados recientemente</h2><button class="btn ghost small" onclick="go('products')">Ver todos</button></div>
   <div id="recent"></div>
-  <p class="notice">Tus registros se guardan en este navegador. Usa la opción “Respaldo” para exportar una copia y recuperarlos si cambias de dispositivo.</p>
+  <p class="notice">Tus registros se guardan en este navegador y, al iniciar sesión, también se sincronizan con tu cuenta OCREA.</p>
 </section>
 
 <section id="vendors" class="view">
@@ -85,6 +84,28 @@
 <section id="wishlist" class="view">
   <div class="eyebrow">Pendientes</div><div class="section-head"><h1>Lista de compras</h1><button class="btn" onclick="openWishlist()">＋ Agregar</button></div>
   <p class="muted">Anota lo que necesitas conseguir para tus talleres o para el proyecto.</p><div id="wishList"></div>
+</section>
+
+<section id="currencies" class="view">
+  <div class="eyebrow">Conversor</div><h1>Monedas</h1><p class="muted">Convierte entre dólares y bolívares con la tasa editable de Planificación.</p>
+  <div class="card"><div class="field"><label>Bs. por cada USD</label><input id="currencyRate" type="number" min="0" step="0.01" placeholder="Actualiza la tasa" oninput="saveRateFromCurrency(this.value)"></div>
+    <div class="field"><label>Dólares (USD)</label><input id="currencyUsd" type="number" min="0" step="0.01" placeholder="0.00" oninput="convertCurrency('usd')"></div>
+    <div class="field"><label>Bolívares (VES)</label><input id="currencyVes" type="number" min="0" step="0.01" placeholder="0.00" oninput="convertCurrency('ves')"></div>
+    <p class="notice" id="currencyRateNotice"></p>
+  </div>
+</section>
+
+<section id="venezuela" class="view">
+  <div class="eyebrow">Familia</div><h1>Para Venezuela</h1><p class="muted">Envíos y tiendas de referencia para Daniela.</p>
+  <div class="section-tabs" id="venezuelaTabs"><button class="active" onclick="showVenezuela('shipments',this)">Envíos</button><button onclick="showVenezuela('daniela',this)">Para Daniela</button></div>
+  <div id="venezuela-shipments"><div class="section-head"><h2>Envíos</h2><button class="btn small" onclick="openShipment()">＋ Registrar envío</button></div><p class="muted">Guarda el comprobante, el monto y la fecha.</p><div id="shipmentList"></div></div>
+  <div id="venezuela-daniela" class="hidden"><div class="section-head"><h2>Tiendas para Daniela</h2><button class="btn small" onclick="openDanielaShop()">＋ Agregar tienda</button></div><p class="muted">Referencias e instrucciones. Marcar como visitada y subir fotos de resultados es opcional.</p><div id="danielaList"></div></div>
+</section>
+
+<section id="costs" class="view">
+  <div class="eyebrow">Planificación</div><h1>Costos</h1><p class="muted">Resumen de presupuesto, equipamiento y gastos registrados.</p>
+  <div class="summary-grid"><div class="summary-tile"><span class="muted">Inversión estimada</span><strong id="costBudget">$0.00</strong></div><div class="summary-tile"><span class="muted">Gastos mensuales</span><strong id="costExpenses">$0.00</strong></div><div class="summary-tile"><span class="muted">Equipamiento total</span><strong id="costEquipment">$0.00</strong></div></div>
+  <button class="btn secondary" onclick="go('planning');showPlan('budget',document.querySelector('#planTabs button:nth-child(2)'))">Abrir Planificación</button>
 </section>
 
 
@@ -146,7 +167,7 @@
   <div class="eyebrow">Tus datos, bajo tu control</div><h1>Respaldo</h1><p class="muted">Exporta una copia de tus proveedores, productos, fotos, planificación, envíos y tiendas para Daniela. Puedes importarla después en este mismo navegador o en otro dispositivo.</p>
   <div class="card"><h3>Guardar una copia</h3><p>Descarga un archivo de respaldo con tus registros.</p><div class="actions"><button class="btn" onclick="exportData()">Descargar respaldo</button></div></div>
   <div class="card"><h3>Recuperar información</h3><p>Importa un respaldo JSON que hayas descargado anteriormente.</p><div class="field"><input type="file" id="importFile" accept=".json,application/json"></div><button class="btn secondary" onclick="importData()">Importar respaldo</button></div>
-  <div class="card"><h3>Instalar en tu iPhone</h3><p>Abre esta página en Safari, toca Compartir y elige “Añadir a pantalla de inicio”. La página se abrirá como una aplicación. Después de la primera visita, también podrá cargar sin conexión.</p></div><div class="card"><h3>Sobre el almacenamiento</h3><p>Los datos se guardan en este navegador de este dispositivo. No se comparten ni se sincronizan automáticamente entre teléfonos. Descarga respaldos con frecuencia.</p></div>
+  <div class="card"><h3>Instalar en tu iPhone</h3><p>Abre esta página en Safari, toca Compartir y elige “Añadir a pantalla de inicio”. La página se abrirá como una aplicación. Después de la primera visita, también podrá cargar sin conexión.</p></div><div class="card"><h3>Sobre el almacenamiento</h3><p>Los datos se guardan localmente y, al iniciar sesión, se sincronizan con tu cuenta OCREA. Descarga respaldos periódicamente como copia adicional.</p></div>
 </section>
 </div>
 
@@ -156,23 +177,25 @@
 <button data-view="products" onclick="go('products')"><span>▧</span>Productos</button>
 <button data-view="planning" onclick="go('planning')"><span>▦</span>Planificación</button>
 <button data-view="compare" onclick="go('compare')"><span>⇄</span>Comparar</button>
-<button data-view="wishlist" onclick="go('wishlist')"><span>♡</span>Compras</button>
+<div class="more-wrap"><div class="more-menu" id="moreMenu"><button onclick="go('wishlist')">♡ Pendientes</button><button onclick="go('costs')">▤ Costos</button><button onclick="go('currencies')">⇄ Monedas</button><button onclick="go('venezuela')">♡ Para Venezuela</button><button onclick="go('backup')">↧ Respaldo</button></div><button data-view="more" onclick="toggleMoreMenu()"><span>⋯</span>Más</button></div>
 </div></nav>
 
 <div class="modalback" id="modalback" onclick="if(event.target===this)closeModal()"><div class="modal"><div class="modalhead"><h2 id="modalTitle">Agregar</h2><button class="x" onclick="closeModal()">×</button></div><div id="modalBody"></div></div></div>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
 const KEY='stain_supply_v1';
-let db={vendors:[],products:[],wishlist:[],locals:[],budget:[],expenses:[],equipment:[],menu:[],permits:[],tasks:[],shipments:[],danielaShops:[],settings:{exchangeRate:0}}, category='Todos', pendingImage='',pendingShipmentImage='',pendingShopImages=[],pendingResultImages=[];
-const planDefaults={locals:[],budget:[],expenses:[],equipment:[],menu:[],permits:[],tasks:[],settings:{exchangeRate:0}};
+let db={vendors:[],products:[],wishlist:[],locals:[],budget:[],expenses:[],equipment:[],menu:[],permits:[],tasks:[],planning:[],shipments:[],danielaShops:[],settings:{exchangeRate:0}}, category='Todos', pendingImage='',pendingShipmentImage='',pendingShopImages=[],pendingResultImages=[];
+const planDefaults={locals:[],budget:[],expenses:[],equipment:[],menu:[],permits:[],tasks:[],planning:[],settings:{exchangeRate:0}};
 try{const saved=localStorage.getItem(KEY);if(saved)db=JSON.parse(saved)}catch(e){}
 for(const k of Object.keys(planDefaults)){if(!db[k])db[k]=Array.isArray(planDefaults[k])?[]:{...planDefaults[k]};}
 if(!db.settings)db.settings={exchangeRate:0};
+for(const k of ['shipments','danielaShops'])if(!Array.isArray(db[k]))db[k]=[];
 function save(){try{localStorage.setItem(KEY,JSON.stringify(db))}catch(e){alert('El almacenamiento está lleno. Prueba con imágenes más pequeñas o elimina algunas fotos. Descarga un respaldo antes de continuar.')}renderAll()}
 function esc(s=''){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
 function money(n){return '$'+Number(n||0).toFixed(2)}
 function vendorName(id){return db.vendors.find(v=>v.id===id)?.name||'Tienda no especificada'}
-function go(id){document.querySelectorAll('.view').forEach(v=>v.classList.toggle('active',v.id===id));document.querySelectorAll('.nav button').forEach(b=>b.classList.toggle('active',b.dataset.view===id));if(id==='compare')fillCompare();if(id==='planning')renderPlanning();renderAll();window.scrollTo(0,0)}
+function go(id){document.querySelectorAll('.view').forEach(v=>v.classList.toggle('active',v.id===id));const primary=['home','vendors','products','planning','compare'];document.querySelectorAll('.nav button[data-view]').forEach(b=>b.classList.toggle('active',b.dataset.view===id||(b.dataset.view==='more'&&!primary.includes(id))));document.getElementById('moreMenu')?.classList.remove('show');if(id==='compare')fillCompare();if(id==='planning')renderPlanning();renderAll();window.scrollTo(0,0)}
+function toggleMoreMenu(){document.getElementById('moreMenu').classList.toggle('show')}
 function openModal(title,body){document.getElementById('modalTitle').textContent=title;document.getElementById('modalBody').innerHTML=body;document.getElementById('modalback').classList.add('show')}
 function closeModal(){document.getElementById('modalback').classList.remove('show');pendingImage=''}
 function id(){return Date.now().toString(36)+Math.random().toString(36).slice(2,7)}
@@ -205,7 +228,7 @@ function saveWish(e){e.preventDefault();let f=Object.fromEntries(new FormData(e.
 function planTotal(k){return db.planning.reduce((s,x)=>s+Number(x[k]||0),0)}
 function addPlan(e){e.preventDefault();let x=Object.fromEntries(new FormData(e.target).entries());x.estimated=Number(x.estimated||0);x.actual=Number(x.actual||0);x.id=id();db.planning.unshift(x);save();e.target.reset()}
 function renderPlan(){let a=planTotal('estimated'),b=planTotal('actual');document.getElementById('planEstimated').textContent=money(a);document.getElementById('planActual').textContent=money(b);document.getElementById('planRemaining').textContent=money(Math.max(0,a-b));document.getElementById('exchangeRate').value=db.settings.exchangeRate||'';document.getElementById('planList').innerHTML=db.planning.map(x=>'<div class="card"><span class="tag">'+esc(x.category)+'</span><h3>'+esc(x.name)+'</h3><p>'+esc(x.status)+'</p><div class="compareline">Estimado <b>'+money(x.estimated)+'</b></div><div class="compareline">Pagado <b>'+money(x.actual)+'</b></div><p>'+esc(x.notes||'')+'</p></div>').join('')||'<div class="empty">Aún no hay registros.</div>'}
-function renderAll(){if(document.getElementById('planning')?.classList.contains('active'))renderPlanning();document.getElementById('countV').textContent=db.vendors.length;document.getElementById('countP').textContent=db.products.length;document.getElementById('countF').textContent=db.products.filter(p=>p.favorite).length;renderVendors();renderProducts();renderRecent();renderWishlist();renderPlan();if(document.getElementById('compare').classList.contains('active')){fillCompare()}}
+function renderAll(){if(document.getElementById('planning')?.classList.contains('active'))renderPlanning();document.getElementById('countV').textContent=db.vendors.length;document.getElementById('countP').textContent=db.products.length;document.getElementById('countF').textContent=db.products.filter(p=>p.favorite).length;renderVendors();renderProducts();renderRecent();renderWishlist();renderPlan();renderShipments();renderDanielaShops();renderCurrencies();renderCostSummary();if(document.getElementById('compare').classList.contains('active')){fillCompare()}}
 function renderVendors(){let q=(document.getElementById('vendorSearch')?.value||'').toLowerCase();let a=db.vendors.filter(v=>(v.name+' '+v.city+' '+v.category).toLowerCase().includes(q));document.getElementById('vendorList').innerHTML=a.length?a.map(v=>`<div class="card"><div class="row"><div class="thumb placeholder">🏬</div><div class="grow"><h3>${esc(v.name)}</h3><p>${esc(v.city||'Ciudad no indicada')} · ${esc(v.category||'Sin categoría')}</p>${v.phone?`<span class="tag">${esc(v.phone)}</span>`:''}</div></div>${v.address?`<p style="margin-top:9px">⌖ ${esc(v.address)}</p>`:''}${v.notes?`<p style="margin-top:6px">${esc(v.notes)}</p>`:''}<div class="actions"><button class="btn ghost small" onclick="openVendor('${v.id}')">Editar</button><button class="btn ghost small" onclick="vendorProducts('${v.id}')">Ver productos</button><button class="btn ghost small" onclick="delVendor('${v.id}')">Eliminar</button></div></div>`).join(''):'<div class="empty">🏬<b>Aún no tienes proveedores</b>Agrega la primera tienda que encontraste.</div>'}
 function vendorProducts(vid){go('products');document.getElementById('productSearch').value=vendorName(vid);renderProducts()}
 function delVendor(vid){if(confirm('¿Eliminar este proveedor? Los productos asociados se conservarán.')){db.vendors=db.vendors.filter(v=>v.id!==vid);save()}}
@@ -378,7 +401,7 @@ function updateRecipeBatch(recipeId){
  const el=document.getElementById('batch-result-'+recipeId);if(el)el.textContent='Inversión en materiales: '+money(cost*qty)+' · Venta total sugerida: '+money(price*qty)+' · Ganancia bruta estimada: '+money((price-cost)*qty);
 }
 function deleteRecipe(recipeId){if(confirm('¿Eliminar esta ficha de producto?')){db.recipes=db.recipes.filter(x=>x.id!==recipeId);save();renderRecipes()}}
-const renderCostsBase=renderCosts;
+const renderCostsBase=typeof renderCosts==='function'?renderCosts:()=>{};
 renderCosts=function(){renderCostsBase();renderRecipes()};
 
 
@@ -397,8 +420,11 @@ function cloudStatus(message){
   if(el)el.textContent=message;
 }
 function toggleCloudPanel(){
-  const panel=document.getElementById('cloudAuthPanel');
-  if(panel)panel.classList.toggle('hidden');
+  const card=document.getElementById('cloudAuthCard'),panel=document.getElementById('cloudAuthPanel');
+  if(!card||!panel)return;
+  const opening=card.classList.contains('hidden');
+  card.classList.toggle('hidden',!opening);
+  panel.classList.toggle('hidden',!opening);
 }
 function cloudHasData(data){
   if(!data)return false;
@@ -407,14 +433,14 @@ function cloudHasData(data){
 }
 function cloudNormalize(data){
   const d=(data&&typeof data==='object')?JSON.parse(JSON.stringify(data)):{};
-  const arrays=['vendors','products','wishlist','locals','budget','expenses','equipment','menu','permits','tasks','purchases','activities','recipes'];
+  const arrays=['vendors','products','wishlist','locals','budget','expenses','equipment','menu','permits','tasks','planning','shipments','danielaShops','purchases','activities','recipes'];
   arrays.forEach(k=>{if(!Array.isArray(d[k]))d[k]=[];});
   if(!d.settings||typeof d.settings!=='object')d.settings={exchangeRate:0};
   return d;
 }
 function cloudMerge(localData, cloudData){
   const local=cloudNormalize(localData), remote=cloudNormalize(cloudData), merged={...remote};
-  const arrays=['vendors','products','wishlist','locals','budget','expenses','equipment','menu','permits','tasks','purchases','activities','recipes'];
+  const arrays=['vendors','products','wishlist','locals','budget','expenses','equipment','menu','permits','tasks','planning','shipments','danielaShops','purchases','activities','recipes'];
   arrays.forEach(k=>{
     const seen=new Set(), out=[];
     // Los datos que ya están en la nube tienen prioridad si el mismo registro existe en ambos dispositivos.
@@ -486,16 +512,18 @@ function cloudSubscribe(){
 }
 async function cloudHandleSession(session){
   ocreaSession=session||null;
-  const out=document.getElementById('cloudSignOut'), now=document.getElementById('cloudSyncNow'), toggle=document.getElementById('cloudToggle');
+  const out=document.getElementById('cloudSignOut'), now=document.getElementById('cloudSyncNow'), toggle=document.getElementById('cloudToggle'), quick=document.getElementById('cloudSyncQuick');
   if(!ocreaSession){
     cloudStatus('No has iniciado sesión. Tus datos siguen guardados en este dispositivo.');
     if(out)out.classList.add('hidden');if(now)now.classList.add('hidden');
-    if(toggle)toggle.textContent='Conectar';
+    if(quick)quick.classList.add('hidden');
+    if(toggle){toggle.textContent='☁';toggle.setAttribute('aria-label','Abrir sincronización OCREA');}
     if(ocreaRealtime){ocreaSupabase.removeChannel(ocreaRealtime);ocreaRealtime=null;}
     return;
   }
   if(out)out.classList.remove('hidden');if(now)now.classList.remove('hidden');
-  if(toggle)toggle.textContent='Mi cuenta';
+  if(quick)quick.classList.remove('hidden');
+  if(toggle){toggle.textContent='☁';toggle.setAttribute('aria-label','Abrir cuenta OCREA');}
   cloudStatus('Conectando y revisando tus datos…');
   try{
     const row=await cloudFetchData();
